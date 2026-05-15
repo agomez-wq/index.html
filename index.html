@@ -1330,12 +1330,18 @@ async function cargarDesdeGoogleSheets() {
     function buildHist(csv, colBid, colAsk, colYTM) {
       const parsed = Papa.parse(csv, {header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
       const hist = {};
+      // Helper: convierte número con coma decimal europea a número JS
+      const parseNum = s => {
+        if (!s) return NaN;
+        s = s.toString().replace(',', '.');
+        return parseFloat(s);
+      };
       parsed.data.forEach(row => {
         const ticker = (row['Ticker']||'').trim();
         if (!ticker) return;
         const dt = parseFechaGS(row['Fecha']); if (!dt) return;
-        const bid = parseFloat(row[colBid]), ask = parseFloat(row[colAsk]);
-        const ytm = parseFloat(row[colYTM]);
+        const bid = parseNum(row[colBid]), ask = parseNum(row[colAsk]);
+        const ytm = parseNum(row[colYTM]);
         if (isNaN(bid)||isNaN(ask)) return;
         if (!hist[ticker]) hist[ticker] = {ticker_largo:ticker, isin:(row['ISIN']||''), datos:[]};
         hist[ticker].datos.push({
@@ -1412,3 +1418,4 @@ setInterval(fetchUS10Y, 300000);
 </script>
 </body>
 </html>
+
