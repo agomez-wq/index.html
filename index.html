@@ -247,7 +247,6 @@ td { padding: 12px 16px; font-size: 13px; color: var(--text-m); white-space: now
   .modal-kpis { grid-template-columns: 1fr; }
 }
 
-/* ── Chart toggles ─────────────────────────── */
 .chart-controls-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; }
 .chart-toggle-group { display:flex; gap:.5rem; align-items:center; }
 .toggle-pair { display:flex; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; }
@@ -255,7 +254,6 @@ td { padding: 12px 16px; font-size: 13px; color: var(--text-m); white-space: now
 .toggle-btn:not(:last-child) { border-right:1.5px solid var(--border); }
 .toggle-btn.active { background:var(--green-dd); color:#fff; }
 .toggle-btn:hover:not(.active) { background:var(--surface-2); color:var(--text); }
-.chart-fuente-label { font-size:11px; color:var(--text-l); text-align:right; margin-top:4px; font-style:italic; }
 .gs-banner { font-size:11px; color:#9EC229; font-weight:600; letter-spacing:.03em; }
 </style>
 </head>
@@ -276,7 +274,6 @@ td { padding: 12px 16px; font-size: 13px; color: var(--text-m); white-space: now
   <div class="nav-sub">Mercado OTC</div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('bonos')">Bonos</button>
-    <button class="nav-tab" onclick="showPage('curva')">Curva de rendimientos</button>
     <button class="nav-tab" onclick="showPage('rv')">Renta Variable</button>
   </div>
   <div class="nav-clock"><span class="dot"></span><span id="clock"></span></div>
@@ -370,40 +367,6 @@ td { padding: 12px 16px; font-size: 13px; color: var(--text-m); white-space: now
 </div>
 
 <!-- PAGE: CURVA -->
-<div id="pg-curva" class="page hide">
-  <div class="page-head">
-    <div>
-      <h1>Curva de Rendimientos</h1>
-      <p>Visualización de tasas Offer YTM vs. plazo al vencimiento</p>
-    </div>
-  </div>
-
-  <div class="curve-wrap">
-    <div class="curve-head">
-      <h2>Curva Soberana · República Dominicana</h2>
-      <p>Offer YTM en función de años al vencimiento</p>
-    </div>
-    <div class="curve-canvas">
-      <canvas id="curveCanvas"></canvas>
-    </div>
-    <div class="curve-legend">
-      <div class="leg-item">
-        <div class="leg-color" style="background:#7a9a18"></div>
-        <div class="leg-label">Hacienda USD</div>
-      </div>
-      <div class="leg-item">
-        <div class="leg-color" style="background:#414042"></div>
-        <div class="leg-label">Hacienda DOP</div>
-      </div>
-      <div class="leg-item">
-        <div class="leg-color" style="background:#5a3ea0"></div>
-        <div class="leg-label">Banco Central</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PAGE: RENTA VARIABLE -->
 <div id="pg-rv" class="page hide">
   <div class="page-head">
     <div>
@@ -531,10 +494,6 @@ td { padding: 12px 16px; font-size: 13px; color: var(--text-m); white-space: now
               <button id="btn-precio" class="toggle-btn active" onclick="cambiarModoVista('precio')">Precio</button>
               <button id="btn-ytm"    class="toggle-btn"        onclick="cambiarModoVista('ytm')">YTM</button>
             </div>
-            <div class="toggle-pair">
-              <button id="btn-bbg"       class="toggle-btn active" onclick="cambiarFuenteDatos('bbg')">Bloomberg</button>
-              <button id="btn-tesoreria" class="toggle-btn"        onclick="cambiarFuenteDatos('tesoreria')">Tesorería</button>
-            </div>
           </div>
         </div>
       </div>
@@ -574,7 +533,7 @@ const GOOGLE_SHEET_URLS = {
   historico_tesoreria: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQCeKT4Uqrxu2mhqsOXvd_LrQEFTVzcGadM71sQNCsG2t45kFKemxTTNN7LcftT0A_tCHH-oVjU9vta/pub?gid=2084979198&single=true&output=csv'
 };
 
-const USE_GOOGLE_SHEETS = true; // ✅ Conectado a Google Sheets CCI
+const USE_GOOGLE_SHEETS = true;
 
 // ================================
 // VARIABLES GLOBALES
@@ -624,32 +583,27 @@ const DATOS_RESPALDO = [
 // ================================
 // DATOS HISTÓRICOS DE PRECIOS (REALES)
 // ================================
-// ============================================================
-// SPREADS DE TESORERÍA CCI
-// Se leen en tiempo real desde Google Sheets
-// Este bloque es solo el fallback si GSheets no carga
-// ============================================================
 const SPREADS_TESORERIA = {
-  "DOMREP 5.95 01/25/27":  { dif_bid: 0.1703, dif_offer: 0.1714 },
-  "DOMREP 8 5/8 04/20/27": { dif_bid: 0.2759, dif_offer: 0.2786 },
-  "DOMREP 6 07/19/28":     { dif_bid: 0.3078, dif_offer: 0.3099 },
-  "DOMREP 5 1/2 02/22/29": { dif_bid: 0.3178, dif_offer: 0.3199 },
-  "DOMREP 4 1/2 01/30/30": { dif_bid: 0.4028, dif_offer: 0.4062 },
-  "DOMREP 7.05 02/03/31":  { dif_bid: 0.5245, dif_offer: 0.5297 },
-  "DOMREP 4 7/8 09/23/32": { dif_bid: 0.6049, dif_offer: 0.6116 },
-  "DOMREP 6 02/22/33":     { dif_bid: 0.6029, dif_offer: 0.6093 },
-  "DOMREP 5 3/4 03/17/34": { dif_bid: 0.6659, dif_offer: 0.6737 },
-  "DOMREP 5 7/8 10/28/35": { dif_bid: 0.6970, dif_offer: 0.7061 },
-  "DOMREP 6.6 06/01/36":   { dif_bid: 0.7498, dif_offer: 0.7592 },
-  "DOMREP 6.95 03/15/37":  { dif_bid: 0.7911, dif_offer: 0.8023 },
-  "DOMREP 6.15 05/17/38":  { dif_bid: 0.8112, dif_offer: 0.8239 },
-  "DOMREP 5.3 01/21/41":   { dif_bid: 0.8543, dif_offer: 0.8710 },
-  "DOMREP 7.45 04/30/44":  { dif_bid: 1.0692, dif_offer: 1.0914 },
-  "DOMREP 6.85 01/27/45":  { dif_bid: 1.0426, dif_offer: 1.0651 },
-  "DOMREP 6 1/2 02/15/48": { dif_bid: 1.0959, dif_offer: 1.1223 },
-  "DOMREP 6.4 06/05/49":   { dif_bid: 1.1050, dif_offer: 1.1320 },
+  "DOMREP 5.95 01/25/27":  { dif_bid: 0.1697, dif_offer: 0.1707 },
+  "DOMREP 8 5/8 04/20/27": { dif_bid: 0.2752, dif_offer: 0.2778 },
+  "DOMREP 6 07/19/28":     { dif_bid: 0.3074, dif_offer: 0.3095 },
+  "DOMREP 5 1/2 02/22/29": { dif_bid: 0.3175, dif_offer: 0.3196 },
+  "DOMREP 4 1/2 01/30/30": { dif_bid: 0.4026, dif_offer: 0.4059 },
+  "DOMREP 7.05 02/03/31":  { dif_bid: 0.5242, dif_offer: 0.5294 },
+  "DOMREP 4 7/8 09/23/32": { dif_bid: 0.6047, dif_offer: 0.6114 },
+  "DOMREP 6 02/22/33":     { dif_bid: 0.6027, dif_offer: 0.6091 },
+  "DOMREP 5 3/4 03/17/34": { dif_bid: 0.6657, dif_offer: 0.6735 },
+  "DOMREP 5 7/8 10/28/35": { dif_bid: 0.6969, dif_offer: 0.7059 },
+  "DOMREP 6.6 06/01/36":   { dif_bid: 0.7496, dif_offer: 0.7590 },
+  "DOMREP 6.95 03/15/37":  { dif_bid: 0.7910, dif_offer: 0.8021 },
+  "DOMREP 6.15 05/17/38":  { dif_bid: 0.8110, dif_offer: 0.8238 },
+  "DOMREP 5.3 01/21/41":   { dif_bid: 0.8542, dif_offer: 0.8709 },
+  "DOMREP 7.45 04/30/44":  { dif_bid: 1.0691, dif_offer: 1.0913 },
+  "DOMREP 6.85 01/27/45":  { dif_bid: 1.0425, dif_offer: 1.0650 },
+  "DOMREP 6 1/2 02/15/48": { dif_bid: 1.0959, dif_offer: 1.1222 },
+  "DOMREP 6.4 06/05/49":   { dif_bid: 1.1049, dif_offer: 1.1320 },
   "DOMREP 7.15 02/24/55":  { dif_bid: 1.2746, dif_offer: 1.3097 },
-  "DOMREP 5 7/8 01/30/60": { dif_bid: 1.1382, dif_offer: 1.1726 },
+  "DOMREP 5 7/8 01/30/60": { dif_bid: 1.1381, dif_offer: 1.1726 },
   "DOMREP 9 3/4 06/05/26": { dif_bid: 0.1000, dif_offer: 0.5000 },
   "DOMREP 13 5/8 02/03/33":{ dif_bid: 0.3500, dif_offer: 1.0000 },
   "DOMREP 11 1/4 09/15/35":{ dif_bid: 0.5000, dif_offer: 1.2500 },
@@ -657,13 +611,10 @@ const SPREADS_TESORERIA = {
   "DOMREP 10 1/2 03/15/37":{ dif_bid: 0.3500, dif_offer: 1.6500 },
 };
 
-// Calcula histórico tesorería desde BBG usando spreads actuales
 function getHistoricoTesoreria(ticker) {
   const hist = HISTORICO_PRECIOS[ticker];
   if (!hist || !hist.datos) return null;
-  // Prioridad: spreads de Google Sheets
-  const dif = (window.SPREADS_GS && window.SPREADS_GS[ticker])
-    || SPREADS_TESORERIA[ticker];
+  const dif = (window.SPREADS_GS && window.SPREADS_GS[ticker]) || SPREADS_TESORERIA[ticker];
   if (!dif) return null;
   return {
     ...hist,
@@ -757,16 +708,18 @@ function renderPriceChart(bonoIdx, timeframe) {
   const bono   = BONOS[bonoIdx];
   const ticker = bono.ticker;
 
-  // Get data based on active toggle
-  const historico = getHistoricoActivo(ticker);
+  // Siempre usar precios de Tesorería CCI — nunca Bloomberg
+  let historico;
+  if (window.HISTORICO_TES_SHEETS && window.HISTORICO_TES_SHEETS[ticker]) {
+    historico = window.HISTORICO_TES_SHEETS[ticker];
+  } else {
+    historico = getHistoricoTesoreria(ticker);
+  }
 
   if (!historico || !historico.datos || historico.datos.length === 0) {
-    const msg = fuenteDatos === 'tesoreria'
-      ? 'Precios de Tesorería no disponibles para este instrumento.'
-      : 'No hay datos históricos disponibles para este bono.';
     document.querySelector('.chart-container').innerHTML =
       `<div style="padding:3rem;text-align:center;color:var(--text-l);">
-        <p style="font-size:14px;">${msg}</p>
+        <p style="font-size:14px;">Histórico de precios no disponible.</p>
       </div>`;
     document.getElementById('chart-stats').innerHTML = '';
     return;
@@ -775,82 +728,70 @@ function renderPriceChart(bonoIdx, timeframe) {
   const datosFiltrados = filterDataByTimeframe(historico.datos, timeframe);
   if (datosFiltrados.length === 0) {
     document.querySelector('.chart-container').innerHTML =
-      `<div style="padding:3rem;text-align:center;color:var(--text-l);"><p>No hay datos para este período</p></div>`;
+      '<div style="padding:3rem;text-align:center;color:var(--text-l);"><p>No hay datos para este período</p></div>';
     return;
   }
 
   const labels = datosFiltrados.map(d => d.f);
-
   if (priceChart) priceChart.destroy();
-  document.querySelector('.chart-container').innerHTML =
-    '<canvas id="priceChart"></canvas><div class="chart-fuente-label" id="chart-fuente-lbl"></div>';
+  document.querySelector('.chart-container').innerHTML = '<canvas id="priceChart"></canvas>';
   const ctx = document.getElementById('priceChart').getContext('2d');
 
-  if (modoVista === 'precio') {
+  if (modoVista === 'ytm') {
     priceChart = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Last', data: datosFiltrados.map(d=>d.l),
-            borderColor:'#414042', backgroundColor:'rgba(65,64,66,0.08)',
-            borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:0.1, fill:true },
-          { label: fuenteDatos==='tesoreria'?'Bid Tesorería':'Bid BBG',
-            data: datosFiltrados.map(d=>d.b),
-            borderColor:'#b83030', backgroundColor:'transparent',
-            borderWidth:1.5, borderDash:[4,3], pointRadius:0, pointHoverRadius:4, tension:0.1 },
-          { label: fuenteDatos==='tesoreria'?'Offer Tesorería':'Ask BBG',
-            data: datosFiltrados.map(d=>d.a),
-            borderColor:'#9EC229', backgroundColor:'rgba(158,194,41,0.06)',
-            borderWidth:1.5, borderDash:[4,3], pointRadius:0, pointHoverRadius:4, tension:0.1, fill:'-1' }
-        ]
-      },
+      data: { labels, datasets: [{
+        label: 'Rendimiento (YTM %)',
+        data: datosFiltrados.map(d => d.y),
+        borderColor: '#9EC229', backgroundColor: 'rgba(158,194,41,0.1)',
+        borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, tension: 0.1, fill: true
+      }]},
       options: {
-        responsive:true, maintainAspectRatio:false,
-        interaction:{ mode:'index', intersect:false },
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend:{ position:'top', labels:{ font:{ family:'DM Sans', size:11 }, boxWidth:16, padding:12 } },
-          tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(3)??'N/A'}` } }
+          legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 11 }, boxWidth: 16, padding: 12 } },
+          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y?.toFixed(3) ?? 'N/A'}%` } }
         },
         scales: {
-          x:{ ticks:{ maxTicksLimit:8, font:{size:10} }, grid:{display:false} },
-          y:{ ticks:{ font:{size:10}, callback:v=>v.toFixed(2) }, grid:{color:'rgba(0,0,0,0.05)'} }
+          x: { ticks: { maxTicksLimit: 8, font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { font: { size: 10 }, callback: v => v.toFixed(2) + '%' }, grid: { color: 'rgba(0,0,0,0.05)' } }
         }
       }
     });
-    document.getElementById('chart-fuente-lbl').textContent =
-      fuenteDatos==='tesoreria' ? '🏦 Precios Tesorería CCI (con spread aplicado)' : '📊 Precios Bloomberg (mid-market)';
-    updateChartStats(datosFiltrados);
-
-  } else {
-    // YTM mode
-    priceChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'YTM (Ask Yield %)',
-          data: datosFiltrados.map(d=>d.y),
-          borderColor:'#9EC229', backgroundColor:'rgba(158,194,41,0.1)',
-          borderWidth:2.5, pointRadius:0, pointHoverRadius:4, tension:0.1, fill:true
-        }]
-      },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        interaction:{ mode:'index', intersect:false },
-        plugins: {
-          legend:{ position:'top', labels:{ font:{ family:'DM Sans', size:11 }, boxWidth:16, padding:12 } },
-          tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(3)??'N/A'}%` } }
-        },
-        scales: {
-          x:{ ticks:{ maxTicksLimit:8, font:{size:10} }, grid:{display:false} },
-          y:{ ticks:{ font:{size:10}, callback:v=>v.toFixed(2)+'%' }, grid:{color:'rgba(0,0,0,0.05)'} }
-        }
-      }
-    });
-    document.getElementById('chart-fuente-lbl').textContent =
-      fuenteDatos==='tesoreria' ? '🏦 YTM Tesorería CCI' : '📊 YTM Bloomberg (Ask Yield)';
     updateChartStatsYTM(datosFiltrados);
+  } else {
+    // Precio: solo Bid (Compra) y Offer (Venta) — sin Last
+    priceChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [
+        {
+          label: 'Compra (Bid)',
+          data: datosFiltrados.map(d => d.b),
+          borderColor: '#b83030', backgroundColor: 'rgba(184,48,48,0.06)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.1, fill: false
+        },
+        {
+          label: 'Venta (Offer)',
+          data: datosFiltrados.map(d => d.a),
+          borderColor: '#9EC229', backgroundColor: 'rgba(158,194,41,0.08)',
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.1, fill: '-1'
+        }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', labels: { font: { family: 'DM Sans', size: 11 }, boxWidth: 16, padding: 12 } },
+          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y?.toFixed(3) ?? 'N/A'}` } }
+        },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8, font: { size: 10 } }, grid: { display: false } },
+          y: { ticks: { font: { size: 10 }, callback: v => v.toFixed(2) }, grid: { color: 'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+    updateChartStats(datosFiltrados);
   }
 }
 
@@ -918,27 +859,18 @@ function updateChartStats(datos) {
 // ================================
 
 async function loadDataFromCSV() {
-  const loadingEl      = document.getElementById('loading');
-  const errorContainer = document.getElementById('error-container');
-
-  // Siempre mostrar datos de respaldo primero (rápido)
+  // Carga datos de respaldo inmediatamente (rápido)
+  // Google Sheets se carga en segundo plano via cargarDesdeGoogleSheets()
   BONOS = DATOS_RESPALDO;
-  loadingEl.style.display = 'none';
+  const loadingEl = document.getElementById('loading');
+  if (loadingEl) loadingEl.style.display = 'none';
   document.getElementById('table-view').style.display = currentView === 'table' ? 'block' : 'none';
   document.getElementById('card-view').style.display  = currentView === 'cards' ? 'grid'  : 'none';
-  renderKPIs();
-  render();
-  renderCurve();
-
-  // Luego cargar histórico desde Google Sheets en segundo plano
-  if (errorContainer) errorContainer.innerHTML = '';
-  cargarDesdeGoogleSheets();
+  const ec = document.getElementById('error-container');
+  if (ec) ec.innerHTML = '';
+  renderKPIs(); render(); renderCurve();
 }
 
-
-// ================================
-// NAVIGATION
-// ================================
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.add('hide'));
@@ -947,13 +879,9 @@ function showPage(page) {
   if (page === 'bonos') {
     document.getElementById('pg-bonos').classList.remove('hide');
     document.querySelectorAll('.nav-tab')[0].classList.add('active');
-  } else if (page === 'curva') {
-    document.getElementById('pg-curva').classList.remove('hide');
-    document.querySelectorAll('.nav-tab')[1].classList.add('active');
-    if (BONOS.length > 0) renderCurve();
   } else if (page === 'rv') {
     document.getElementById('pg-rv').classList.remove('hide');
-    document.querySelectorAll('.nav-tab')[2].classList.add('active');
+    document.querySelectorAll('.nav-tab')[1].classList.add('active');
   }
 }
 
@@ -1125,7 +1053,7 @@ function renderKPIs() {
   
   const ytms = BONOS.map(b => b.offerYTM);
   const bcrd364 = BONOS.find(b => b.tipo === 'bcrd' && yearsTo(b.venc) >= 0.9 && yearsTo(b.venc) <= 1.1);
-  const mh5y = BONOS.find(b => b.tipo === 'hacienda' && b.mon === 'USD' && yearsTo(b.venc) >= 4.5 && yearsTo(b.venc) <= 5.5);
+  const mh5y = BONOS.find(b => b.tipo === 'hacienda' && b.mon === 'USD' && yearsTo(b.venc) >= 8 && yearsTo(b.venc) <= 12);
   
   document.getElementById('kpis').innerHTML = `
     <div class="kpi">
@@ -1152,11 +1080,16 @@ function renderKPIs() {
     ` : ''}
     ${mh5y ? `
     <div class="kpi">
-      <div class="kpi-lbl">Hacienda USD ~5Y</div>
+      <div class="kpi-lbl">Hacienda USD ~10Y</div>
       <div class="kpi-val">${mh5y.offerYTM.toFixed(2)}%</div>
       <div class="kpi-sub">${mh5y.ticker} · Offer YTM</div>
     </div>
     ` : ''}
+    <div class="kpi">
+      <div class="kpi-lbl">US Treasury 10Y</div>
+      <div class="kpi-val" id="us10y-val">—</div>
+      <div class="kpi-sub">Yield en vivo</div>
+    </div>
   `;
   
   document.getElementById('ts').textContent = 'Datos del ' + new Date().toLocaleDateString('es-DO', {
@@ -1290,16 +1223,9 @@ function renderCurve() {
 function openModal(idx) {
   const b = BONOS[idx];
   currentBonoIdx = idx;
-  // Reset toggles
-  modoVista = 'precio'; fuenteDatos = 'bbg';
-  ['btn-precio','btn-ytm','btn-bbg','btn-tesoreria'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.remove('active');
-  });
-  const bp = document.getElementById('btn-precio');
-  const bb = document.getElementById('btn-bbg');
-  if (bp) bp.classList.add('active');
-  if (bb) bb.classList.add('active');
+  modoVista = 'precio'; fuenteDatos = 'tesoreria';
+  document.querySelectorAll('#btn-precio,#btn-ytm').forEach(b => { if(b) b.classList.remove('active'); });
+  const _bp = document.getElementById('btn-precio'); if(_bp) _bp.classList.add('active');
   
   // Llenar información del header
   document.getElementById('m-title').textContent = b.emisor + ' · ' + b.ticker;
@@ -1349,9 +1275,9 @@ function closeIf(e) {
   if (e.target === document.getElementById('overlay')) closeModal();
 }
 
-// ── Global vars for chart toggles ─────────────────────────
-let modoVista  = 'precio';   // 'precio' | 'ytm'
-let fuenteDatos = 'bbg';     // 'bbg'    | 'tesoreria'
+// ── Globals for chart mode ─────────────────────────────────
+let modoVista   = 'precio';    // 'precio' | 'ytm'
+let fuenteDatos = 'tesoreria'; // always tesoreria for client view
 
 // ── Toggle functions ───────────────────────────────────────
 function cambiarModoVista(modo) {
@@ -1362,43 +1288,21 @@ function cambiarModoVista(modo) {
   if (currentBonoIdx !== null) renderPriceChart(currentBonoIdx, currentTimeframe);
 }
 
-function cambiarFuenteDatos(fuente) {
-  fuenteDatos = fuente;
-  document.querySelectorAll('#btn-bbg,#btn-tesoreria').forEach(b => b && b.classList.remove('active'));
-  const el = document.getElementById('btn-' + fuente);
-  if (el) el.classList.add('active');
-  if (currentBonoIdx !== null) renderPriceChart(currentBonoIdx, currentTimeframe);
-}
-
-function getHistoricoActivo(ticker) {
-  if (fuenteDatos === 'tesoreria') {
-    if (window.HISTORICO_TES_SHEETS && window.HISTORICO_TES_SHEETS[ticker])
-      return window.HISTORICO_TES_SHEETS[ticker];
-    return getHistoricoTesoreria(ticker);
-  } else {
-    if (window.HISTORICO_BBG_SHEETS && window.HISTORICO_BBG_SHEETS[ticker])
-      return window.HISTORICO_BBG_SHEETS[ticker];
-    return HISTORICO_PRECIOS[ticker];
-  }
-}
+function cambiarFuenteDatos(f) { fuenteDatos = f; }
 
 function updateChartStatsYTM(datos) {
-  if (!datos || datos.length === 0) { document.getElementById('chart-stats').innerHTML = ''; return; }
-  const ytms = datos.map(d => d.y).filter(y => y !== null && y !== undefined && !isNaN(y));
-  if (ytms.length === 0) { document.getElementById('chart-stats').innerHTML = '<p style="color:var(--text-l);font-size:12px;padding:1rem;">YTM no disponible.</p>'; return; }
-  const ytmActual  = ytms[ytms.length - 1];
-  const ytmInicial = ytms[0];
-  const cambio     = ytmActual - ytmInicial;
-  const ytmMax     = Math.max(...ytms);
-  const ytmMin     = Math.min(...ytms);
-  const ytmProm    = ytms.reduce((a, b) => a + b, 0) / ytms.length;
+  if (!datos || !datos.length) { document.getElementById('chart-stats').innerHTML = ''; return; }
+  const ytms = datos.map(d => d.y).filter(y => y != null && !isNaN(y));
+  if (!ytms.length) return;
+  const cur = ytms[ytms.length-1], ini = ytms[0], chg = cur - ini;
+  const mx = Math.max(...ytms), mn = Math.min(...ytms), avg = ytms.reduce((a,b)=>a+b,0)/ytms.length;
   document.getElementById('chart-stats').innerHTML = `
-    <div class="cs-item"><div class="cs-lbl">YTM actual</div><div class="cs-val">${ytmActual.toFixed(3)}%</div></div>
-    <div class="cs-item"><div class="cs-lbl">Cambio período</div><div class="cs-val" style="color:${cambio>=0?'var(--red)':'var(--green-dd)'}">
-      ${cambio>=0?'+':''}${cambio.toFixed(3)}%</div></div>
-    <div class="cs-item"><div class="cs-lbl">YTM máximo</div><div class="cs-val">${ytmMax.toFixed(3)}%</div></div>
-    <div class="cs-item"><div class="cs-lbl">YTM mínimo</div><div class="cs-val">${ytmMin.toFixed(3)}%</div></div>
-    <div class="cs-item"><div class="cs-lbl">YTM promedio</div><div class="cs-val">${ytmProm.toFixed(3)}%</div></div>`;
+    <div class="cs-item"><div class="cs-lbl">YTM actual</div><div class="cs-val">${cur.toFixed(3)}%</div></div>
+    <div class="cs-item"><div class="cs-lbl">Cambio período</div><div class="cs-val" style="color:${chg>=0?'var(--red)':'var(--green-dd)'}">
+      ${chg>=0?'+':''}${chg.toFixed(3)}%</div></div>
+    <div class="cs-item"><div class="cs-lbl">YTM máximo</div><div class="cs-val">${mx.toFixed(3)}%</div></div>
+    <div class="cs-item"><div class="cs-lbl">YTM mínimo</div><div class="cs-val">${mn.toFixed(3)}%</div></div>
+    <div class="cs-item"><div class="cs-lbl">YTM promedio</div><div class="cs-val">${avg.toFixed(3)}%</div></div>`;
 }
 
 // ── Google Sheets live loader ──────────────────────────────
@@ -1406,80 +1310,92 @@ async function cargarDesdeGoogleSheets() {
   if (!USE_GOOGLE_SHEETS) return;
   try {
     console.log('📡 Cargando histórico desde Google Sheets...');
-    const [resBBG, resTes] = await Promise.all([
+    const [r1, r2] = await Promise.all([
       fetch(GOOGLE_SHEET_URLS.historico_bbg),
       fetch(GOOGLE_SHEET_URLS.historico_tesoreria)
     ]);
-    if (!resBBG.ok || !resTes.ok) throw new Error('HTTP error');
-    const [csvBBG, csvTes] = await Promise.all([resBBG.text(), resTes.text()]);
+    if (!r1.ok || !r2.ok) throw new Error('HTTP error');
+    const [csv1, csv2] = await Promise.all([r1.text(), r2.text()]);
 
-    function parseFechaGS(str) {
-      if (!str) return null;
-      str = str.trim();
-      if (str.includes('/')) { const [d,m,y] = str.split('/'); return new Date(+y,+m-1,+d); }
-      if (str.includes('-')) return new Date(str);
+    function parseFechaGS(s) {
+      if (!s) return null; s = s.trim();
+      if (s.includes('/')) { const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
+      if (s.includes('-')) return new Date(s);
       return null;
     }
     function fmtGS(dt) {
       const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return `${String(dt.getDate()).padStart(2,'0')} ${M[dt.getMonth()]} ${dt.getFullYear()}`;
     }
-    function buildHist(csvText, colBid, colAsk, colYTM) {
-      const parsed = Papa.parse(csvText, { header:true, skipEmptyLines:true, transformHeader:h=>h.trim() });
+    function buildHist(csv, colBid, colAsk, colYTM) {
+      const parsed = Papa.parse(csv, {header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
       const hist = {};
       parsed.data.forEach(row => {
         const ticker = (row['Ticker']||'').trim();
         if (!ticker) return;
-        const dt  = parseFechaGS(row['Fecha']);
-        if (!dt) return;
-        const bid = parseFloat(row[colBid]);
-        const ask = parseFloat(row[colAsk]);
+        const dt = parseFechaGS(row['Fecha']); if (!dt) return;
+        const bid = parseFloat(row[colBid]), ask = parseFloat(row[colAsk]);
         const ytm = parseFloat(row[colYTM]);
         if (isNaN(bid)||isNaN(ask)) return;
-        if (!hist[ticker]) hist[ticker] = { ticker_largo:ticker, isin:(row['ISIN']||''), datos:[] };
+        if (!hist[ticker]) hist[ticker] = {ticker_largo:ticker, isin:(row['ISIN']||''), datos:[]};
         hist[ticker].datos.push({
-          t: dt.getTime(), f: fmtGS(dt),
-          l: parseFloat(((bid+ask)/2).toFixed(3)),
-          b: bid, a: ask, y: isNaN(ytm)?null:ytm
+          t:dt.getTime(), f:fmtGS(dt),
+          l:parseFloat(((bid+ask)/2).toFixed(3)), b:bid, a:ask, y:isNaN(ytm)?null:ytm
         });
       });
       Object.keys(hist).forEach(t => hist[t].datos.sort((a,b)=>a.t-b.t));
       return hist;
     }
 
-    window.HISTORICO_BBG_SHEETS = buildHist(csvBBG, 'Bid', 'Ask', 'Ask Yld %');
-    window.HISTORICO_TES_SHEETS = buildHist(csvTes, 'Bid', 'Ask', 'Ask Yld %');
+    window.HISTORICO_BBG_SHEETS = buildHist(csv1, 'Bid', 'Ask', 'Ask Yld %');
+    window.HISTORICO_TES_SHEETS = buildHist(csv2, 'Bid', 'Ask', 'Ask Yld %');
 
-    // Build spreads map from tesoreria vs BBG for fallback
+    // Build spreads from live data
     window.SPREADS_GS = {};
     Object.keys(window.HISTORICO_TES_SHEETS).forEach(ticker => {
-      const tesDatos = window.HISTORICO_TES_SHEETS[ticker]?.datos;
-      const bbgDatos = window.HISTORICO_BBG_SHEETS[ticker]?.datos;
-      if (!tesDatos?.length || !bbgDatos?.length) return;
-      const last_tes = tesDatos[tesDatos.length-1];
-      const last_bbg = bbgDatos[bbgDatos.length-1];
-      if (last_tes && last_bbg) {
-        window.SPREADS_GS[ticker] = {
-          dif_bid:   parseFloat((last_bbg.b - last_tes.b).toFixed(4)),
-          dif_offer: parseFloat((last_tes.a - last_bbg.a).toFixed(4))
-        };
-      }
+      const td = window.HISTORICO_TES_SHEETS[ticker]?.datos;
+      const bd = window.HISTORICO_BBG_SHEETS[ticker]?.datos;
+      if (!td?.length || !bd?.length) return;
+      const lt = td[td.length-1], lb = bd[bd.length-1];
+      window.SPREADS_GS[ticker] = {
+        dif_bid:   parseFloat((lb.b - lt.b).toFixed(4)),
+        dif_offer: parseFloat((lt.a - lb.a).toFixed(4))
+      };
     });
 
-    // Get last update timestamp
-    const parsed2 = Papa.parse(csvBBG, { header:true, skipEmptyLines:true, transformHeader:h=>h.trim() });
+    // Update live banner
+    const parsed2 = Papa.parse(csv1, {header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
     const lastRow  = parsed2.data[parsed2.data.length-1];
     const lastUpd  = lastRow?.['Última Actualización'] || lastRow?.['Fecha'] || '';
     const banner   = document.getElementById('gs-banner');
     if (banner && lastUpd) banner.textContent = '🔴 EN VIVO · Actualizado: ' + lastUpd;
 
-    console.log(`✅ GSheets: BBG ${Object.keys(window.HISTORICO_BBG_SHEETS).length} tickers | Tes ${Object.keys(window.HISTORICO_TES_SHEETS).length} tickers`);
+    console.log(`✅ GSheets: BBG ${Object.keys(window.HISTORICO_BBG_SHEETS).length} | Tes ${Object.keys(window.HISTORICO_TES_SHEETS).length} tickers`);
 
-    // Re-render chart if modal is open
     if (currentBonoIdx !== null) renderPriceChart(currentBonoIdx, currentTimeframe);
-
   } catch(err) {
-    console.warn('⚠️ Google Sheets no disponible, usando datos precargados:', err.message);
+    console.warn('⚠️ Google Sheets no disponible:', err.message);
+  }
+}
+
+// ── US Treasury 10Y en vivo ────────────────────────────────
+async function fetchUS10Y() {
+  const urls = [
+    'https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=1d',
+    'https://query2.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=1d'
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (price) {
+        const el = document.getElementById('us10y-val');
+        if (el) el.textContent = price.toFixed(2) + '%';
+        return;
+      }
+    } catch(e) { continue; }
   }
 }
 
@@ -1490,6 +1406,8 @@ async function cargarDesdeGoogleSheets() {
 
 loadDataFromCSV();
 cargarDesdeGoogleSheets();
+fetchUS10Y();
+setInterval(fetchUS10Y, 300000);
 
 </script>
 </body>
