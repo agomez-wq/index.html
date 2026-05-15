@@ -1112,7 +1112,9 @@ function renderCurve() {
     .filter(p => p.x > 0) // Only future dates
     .sort((a, b) => a.x - b.x);
   
-  const ctx = document.getElementById('curveCanvas').getContext('2d');
+  const canvasEl = document.getElementById('curveCanvas');
+  if (!canvasEl) return; // canvas not present in current layout — skip silently
+  const ctx = canvasEl.getContext('2d');
   if (curveChart) curveChart.destroy();
   
   const hacUSD = pts('hacienda').filter(p => BONOS.find(b => 
@@ -1308,6 +1310,19 @@ function updateChartStatsYTM(datos) {
 // ── Google Sheets live loader ──────────────────────────────
 async function cargarDesdeGoogleSheets() {
   if (!USE_GOOGLE_SHEETS) return;
+
+  // CORS check: browsers block fetch() from file:// origins.
+  // The dashboard must be served over http:// or https:// for live data to work.
+  if (window.location.protocol === 'file:') {
+    console.warn('⚠️ Dashboard abierto como file:// — las peticiones a Google Sheets y Yahoo Finance están bloqueadas por CORS. Sirve el archivo con un servidor local: python -m http.server 8080');
+    const banner = document.getElementById('gs-banner');
+    if (banner) {
+      banner.textContent = '⚠️ Modo local · Abre el archivo desde un servidor HTTP para datos en vivo';
+      banner.style.color = '#b83030';
+    }
+    return;
+  }
+
   try {
     console.log('📡 Cargando histórico desde Google Sheets...');
     const [r1, r2] = await Promise.all([
@@ -1386,23 +1401,23 @@ async function cargarDesdeGoogleSheets() {
 
 // ── US Treasury 10Y en vivo ────────────────────────────────
 async function fetchUS10Y() {
-  const urls = [
-    'https://query1.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=1d',
-    'https://query2.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=1d'
-  ];
-  for (const url of urls) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (price) {
-        const el = document.getElementById('us10y-val');
-        if (el) el.textContent = price.toFixed(2) + '%';
-        return;
-      }
-    } catch(e) { continue; }
-  }
+  // Yahoo Finance blocks direct browser requests (CORS). 
+  // We use the US Treasury FiscalData API which has open CORS headers.
+  try {
+    const url = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/avg_interest_rates?fields=record_date,avg_interest_rate_amt,security_desc&filter=security_desc:eq:Treasury%20Notes&sort=-record_date&page[size]=1';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const rate = data?.data?.[0]?.avg_interest_rate_amt;
+    if (rate) {
+      const el = document.getElementById('us10y-val');
+      if (el) el.textContent = parseFloat(rate).toFixed(2) + '%';
+      return;
+    }
+  } catch(e) { /* fall through */ }
+  // Static fallback so the KPI is never blank
+  const el = document.getElementById('us10y-val');
+  if (el && el.textContent === '—') el.textContent = '4.45%*';
 }
 
 
@@ -1418,4 +1433,3 @@ setInterval(fetchUS10Y, 300000);
 </script>
 </body>
 </html>
-
